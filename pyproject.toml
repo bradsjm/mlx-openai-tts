@@ -1,0 +1,72 @@
+[project]
+name = "mlx-openai-tts"
+version = "0.3.0"
+description = "OpenAI-compatible MLX TTS server"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+keywords = ["tts", "openai", "mlx", "fastapi", "speech"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS :: MacOS X",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+  "fastapi>=0.128.0",
+  "uvicorn[standard]>=0.40.0",
+  "pydantic>=2.0.0",
+  "numpy>=2.2.6",
+  "soundfile>=0.13.1",
+  "mlx-audio>=0.2.10",
+  "httpx>=0.28.1",
+  "pip>=26.0",
+]
+
+[project.optional-dependencies]
+dev = ["pyright==1.1.408", "ruff==0.14.14"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+stubPath = "typings"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = true
+
+[project.scripts]
+mlx-openai-tts = "mlx_openai_tts.server:main"
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = ["pyright==1.1.408", "ruff==0.14.14"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.uv]
+package = true

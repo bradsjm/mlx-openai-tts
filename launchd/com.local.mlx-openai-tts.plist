@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.local.mlx-openai-tts</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/user/mlx-openai-tts</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/user/mlx-openai-tts/.venv/bin/python</string>
+      <string>-m</string>
+      <string>uvicorn</string>
+      <string>mlx_openai_tts.server:app</string>
+      <string>--host</string>
+      <string>0.0.0.0</string>
+      <string>--port</string>
+      <string>8001</string>
+      <string>--workers</string>
+      <string>1</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <!-- If unset, auth is disabled. To enable: set to a string and send Authorization: Bearer $API_KEY -->
+      <key>API_KEY</key>
+      <string></string>
+
+      <!-- Model registry -->
+      <key>TTS_MODELS_JSON</key>
+      <string>/Users/user/mlx-openai-tts/models.json</string>
+      <key>TTS_MLX_STRICT</key>
+      <string>false</string>
+      <key>TTS_MAX_CHARS</key>
+      <string>4096</string>
+      <key>TTS_WARMUP_TEXT</key>
+      <string>Hello from MLX TTS.</string>
+
+      <!-- Silence benign upstream warnings -->
+      <key>PYTHONWARNINGS</key>
+      <string>ignore</string>
+
+      <!-- launchd PATH omits Homebrew; include it for ffmpeg -->
+      <key>PATH</key>
+      <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/user/Library/Logs/mlx-openai-tts.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/user/Library/Logs/mlx-openai-tts.err.log</string>
+  </dict>
+</plist>
