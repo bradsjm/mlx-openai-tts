@@ -1,3 +1,9 @@
+"""Base model adapter for MLX TTS backends.
+
+Defines the interface for model adapters that wrap mlx-audio
+TTS models, providing voice resolution and audio generation.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -18,15 +24,45 @@ except Exception as exc:  # pragma: no cover
 
 
 class GenerateResult(Protocol):
+    """Protocol for MLX model generation result."""
+
     audio: ArrayLike
 
 
 class TtsModel(Protocol):
-    def generate(self, **kwargs: object) -> Iterable[GenerateResult]: ...
+    """Protocol for MLX TTS model interface."""
+
+    def generate(self, **kwargs: object) -> Iterable[GenerateResult]:
+        """Generate audio chunks from text.
+
+        Args:
+            **kwargs: Model-specific generation parameters.
+
+        Yields:
+            GenerateResult objects containing audio chunks.
+        """
 
 
 class ModelAdapter:
+    """Base adapter for MLX TTS models.
+
+    Provides common functionality for model loading, parameter inspection,
+    and audio generation. Subclasses must implement voice resolution and
+    parameter building.
+
+    Attributes:
+        spec: Model specification.
+        model: Loaded MLX TTS model instance.
+        sample_rate: Audio sample rate in Hz.
+        _generate_params: Set of parameter names supported by model.generate().
+    """
+
     def __init__(self, spec: ModelSpec) -> None:
+        """Initialize adapter with model specification.
+
+        Args:
+            spec: Model specification from registry.
+        """
         self.spec = spec
         self.model: TtsModel | None = None
         self.sample_rate = 24_000
@@ -34,12 +70,36 @@ class ModelAdapter:
 
     @property
     def requires_voice(self) -> bool:
+        """Whether this model requires a voice parameter.
+
+        Returns:
+            True if voice is required, False otherwise.
+        """
         raise NotImplementedError
 
     def resolve_voice(self, requested_voice: str | None) -> str | None:
+        """Resolve voice identifier for model.
+
+        Args:
+            requested_voice: Voice ID from request, or None.
+
+        Returns:
+            Resolved voice identifier for the model.
+
+        Raises:
+            RuntimeError: If voice resolution fails.
+        """
         raise NotImplementedError
 
     def load(self, *, strict: bool) -> None:
+        """Load the MLX model and inspect its parameters.
+
+        Args:
+            strict: Whether to use strict mode for model loading.
+
+        Raises:
+            RuntimeError: If model loading or inspection fails.
+        """
         kwargs: dict[str, bool] = {}
         try:
             sig = inspect.signature(load_model)
@@ -75,6 +135,19 @@ class ModelAdapter:
         voice: str | None,
         speed: float | None,
     ) -> Iterable[np.ndarray]:
+        """Generate audio as an iterable of chunks.
+
+        Args:
+            text: Input text to synthesize.
+            voice: Resolved voice identifier.
+            speed: Playback speed multiplier.
+
+        Yields:
+            Float32 mono audio chunks as numpy arrays.
+
+        Raises:
+            RuntimeError: If model not loaded or generation fails.
+        """
         model = self.model
         if model is None:
             raise RuntimeError("MLX engine not loaded.")
@@ -95,12 +168,33 @@ class ModelAdapter:
         voice: str | None,
         speed: float | None,
     ) -> np.ndarray:
+        """Generate complete audio as a single array.
+
+        Args:
+            text: Input text to synthesize.
+            voice: Resolved voice identifier.
+            speed: Playback speed multiplier.
+
+        Returns:
+            Float32 mono audio as numpy array.
+
+        Raises:
+            RuntimeError: If no audio is produced.
+        """
         chunks = list(self.iter_chunks(text=text, voice=voice, speed=speed))
         if not chunks:
             raise RuntimeError("MLX pipeline produced no audio. Check voice configuration.")
         return np.concatenate(chunks, axis=0) if len(chunks) > 1 else chunks[0]
 
     def _supports_generate_param(self, name: str) -> bool:
+        """Check if model.generate() accepts a parameter.
+
+        Args:
+            name: Parameter name to check.
+
+        Returns:
+            True if parameter is supported, False otherwise.
+        """
         return name in self._generate_params
 
     def _build_generate_kwargs(
@@ -110,4 +204,17 @@ class ModelAdapter:
         voice: str | None,
         speed: float | None,
     ) -> dict[str, object]:
+        """Build kwargs for model.generate() based on model capabilities.
+
+        Args:
+            text: Input text to synthesize.
+            voice: Resolved voice identifier (or None).
+            speed: Playback speed multiplier (or None).
+
+        Returns:
+            Dictionary of parameters for model.generate().
+
+        Raises:
+            NotImplementedError: If not implemented by subclass.
+        """
         raise NotImplementedError

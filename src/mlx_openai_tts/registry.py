@@ -1,10 +1,15 @@
+"""Model registry configuration and validation.
+
+Loads and validates model specifications from models.json, providing
+a resolved registry with models indexed by ID.
+"""
+
 from __future__ import annotations
 
 import json
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
-
 from typing import Literal
 
 from pydantic import BaseModel, Field

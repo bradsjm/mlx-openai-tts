@@ -1,3 +1,8 @@
+"""Configuration management for the TTS server.
+
+Loads configuration from environment variables with validation and defaults.
+"""
+
 from __future__ import annotations
 
 import os
@@ -9,6 +14,18 @@ DEFAULT_WARMUP_TEXT = "Hello from MLX TTS."
 
 
 def _env_int(name: str, default: int) -> int:
+    """Parse an environment variable as an integer.
+
+    Args:
+        name: Environment variable name.
+        default: Default value if variable is not set.
+
+    Returns:
+        The parsed integer value.
+
+    Raises:
+        RuntimeError: If the value is not a valid integer or is <= 0.
+    """
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
         return default
@@ -22,11 +39,32 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _env_str(name: str, default: str) -> str:
+    """Parse an environment variable as a string.
+
+    Args:
+        name: Environment variable name.
+        default: Default value if variable is not set or empty.
+
+    Returns:
+        The trimmed string value or default.
+    """
     value = os.getenv(name)
     return default if value is None or value.strip() == "" else value.strip()
 
 
 def _env_float(name: str, default: float) -> float:
+    """Parse an environment variable as a float.
+
+    Args:
+        name: Environment variable name.
+        default: Default value if variable is not set.
+
+    Returns:
+        The parsed float value.
+
+    Raises:
+        RuntimeError: If the value is not a valid float or is <= 0.
+    """
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
         return default
@@ -41,6 +79,17 @@ def _env_float(name: str, default: float) -> float:
 
 @dataclass(frozen=True)
 class AppConfig:
+    """Immutable configuration for the TTS server.
+
+    Attributes:
+        api_key: API key for authentication, or None to disable auth.
+        models_path: Path to the models.json configuration file.
+        max_chars: Maximum input text length in characters.
+        warmup_text: Text to synthesize for model warmup on startup.
+        strict: Whether to use strict mode for model loading.
+        voice_clone_dir: Directory containing voice reference audio files.
+    """
+
     api_key: str | None
     models_path: str
     max_chars: int
@@ -50,6 +99,13 @@ class AppConfig:
 
 
 def load_config() -> AppConfig:
+    """Load configuration from environment variables.
+
+    Reads and validates environment variables for all configuration options.
+
+    Returns:
+        The loaded application configuration.
+    """
     strict_env = _env_str("TTS_MLX_STRICT", "false").lower()
     strict = strict_env in {"1", "true", "yes", "on"}
     voice_clone_dir = _env_str("TTS_VOICE_CLONE_DIR", "").strip()

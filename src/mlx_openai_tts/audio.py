@@ -1,3 +1,9 @@
+"""Audio formatting and streaming utilities.
+
+Handles audio format conversion (WAV, PCM, MP3, Opus, AAC, FLAC)
+and streaming responses for both raw audio and Server-Sent Events.
+"""
+
 from __future__ import annotations
 
 import base64

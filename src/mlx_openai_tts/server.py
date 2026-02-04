@@ -1,3 +1,9 @@
+"""FastAPI server for OpenAI-compatible TTS API.
+
+Provides REST endpoints for text-to-speech generation with model
+management, authentication, and streaming support.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -26,10 +32,22 @@ from .schemas import (
 
 
 def _normalize_text(text: str) -> str:
+    """Normalize whitespace in input text."""
     return re.sub(r"\s+", " ", text).strip()
 
 
 def _parse_voice_id(voice: str | VoicePayload) -> str:
+    """Parse voice identifier from string or VoicePayload.
+
+    Args:
+        voice: Voice as string or VoicePayload.
+
+    Returns:
+        Parsed voice identifier.
+
+    Raises:
+        RuntimeError: If voice is empty or invalid.
+    """
     if isinstance(voice, str):
         value = voice.strip()
         if not value:
@@ -42,6 +60,7 @@ def _parse_voice_id(voice: str | VoicePayload) -> str:
 
 
 def _configure_loguru() -> None:
+    """Configure loguru to route logs to uvicorn."""
     try:
         from loguru import logger as loguru_logger
     except ImportError:
@@ -63,6 +82,19 @@ APP_VERSION = __version__
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Lifespan context manager for FastAPI app.
+
+    Loads configuration, models, and performs warmup on startup.
+
+    Args:
+        app: FastAPI application instance.
+
+    Yields:
+        None when startup is complete.
+
+    Raises:
+        RuntimeError: If model loading or warmup fails.
+    """
     cfg = load_config()
     app.state.cfg = cfg
     logger = logging.getLogger("uvicorn.error")
@@ -101,6 +133,14 @@ logging.getLogger("phonemizer").setLevel(logging.ERROR)
 
 
 def _require_auth(authorization: str | None) -> None:
+    """Require valid authorization if API key is configured.
+
+    Args:
+        authorization: Authorization header value.
+
+    Raises:
+        HTTPException: If authentication fails.
+    """
     cfg: AppConfig = app.state.cfg
     require_auth(authorization, cfg.api_key)
 
@@ -109,6 +149,14 @@ def _require_auth(authorization: str | None) -> None:
 def list_models(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> ModelListResponse:
+    """List available TTS models.
+
+    Args:
+        authorization: Authorization header value.
+
+    Returns:
+        Model list response with available models.
+    """
     _require_auth(authorization)
     registry: ResolvedRegistry = app.state.registry
     data = [
@@ -129,6 +177,14 @@ def list_models(
 def health(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> HealthResponse:
+    """Health check endpoint.
+
+    Args:
+        authorization: Authorization header value.
+
+    Returns:
+        Health response with server status and active model info.
+    """
     _require_auth(authorization)
     manager: ModelManager = app.state.model_manager
     active_engine = manager.active_engine
@@ -149,6 +205,21 @@ async def audio_speech(
     body: AudioSpeechRequest,
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> Response:
+    """Generate speech from text.
+
+    Supports multiple response formats (wav, mp3, opus, pcm, aac, flac)
+    and streaming modes (audio, sse).
+
+    Args:
+        body: Audio speech request with text, voice, and format options.
+        authorization: Authorization header value.
+
+    Returns:
+        Streaming or complete audio response with metadata headers.
+
+    Raises:
+        HTTPException: If validation or synthesis fails.
+    """
     _require_auth(authorization)
     cfg: AppConfig = app.state.cfg
     registry: ResolvedRegistry = app.state.registry
@@ -190,6 +261,7 @@ async def audio_speech(
         ) from exc
     headers["X-Sample-Rate"] = str(engine.sample_rate)
 
+    # Non-streaming or compressed format: synthesize full audio first
     if stream_format == "audio":
         if response_format != "pcm":
             t0 = time.perf_counter()
@@ -211,6 +283,7 @@ async def audio_speech(
             headers["X-Latency-Ms"] = str(int((time.perf_counter() - t0) * 1000))
             return StreamingResponse(iter([out_bytes]), media_type=media_type, headers=headers)
 
+        # PCM streaming: stream audio chunks as they're generated
         try:
             audio_iter, latency_ms = stream_pcm_audio(
                 engine=engine, infer_lock=infer_lock, text=text, voice=voice, speed=speed
@@ -222,6 +295,7 @@ async def audio_speech(
         headers["X-Latency-Ms"] = str(latency_ms)
         return StreamingResponse(audio_iter, media_type="application/octet-stream", headers=headers)
 
+    # SSE streaming: wrap audio chunks in server-sent events
     if stream_format == "sse":
         if response_format == "pcm":
             try:
@@ -240,6 +314,7 @@ async def audio_speech(
                 headers=sse_headers,
             )
 
+        # Non-PCM formats: synthesize full audio first, then stream as SSE
         t0 = time.perf_counter()
         try:
             with infer_lock:
@@ -268,6 +343,10 @@ async def audio_speech(
 
 
 def main() -> None:
+    """Run the TTS server.
+
+    Loads configuration from environment variables and starts uvicorn.
+    """
     host = _env_str("HOST", "0.0.0.0")
     port = _env_int("PORT", 8001)
     uvicorn.run("mlx_openai_tts.server:app", host=host, port=port, workers=1)

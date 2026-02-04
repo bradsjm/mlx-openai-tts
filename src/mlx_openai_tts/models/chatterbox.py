@@ -1,3 +1,9 @@
+"""Adapter for Chatterbox TTS model.
+
+Chatterbox supports voice cloning from reference audio files.
+Voice can be a built-in preset or path to a reference audio file.
+"""
+
 from __future__ import annotations
 
 import os
@@ -9,15 +15,42 @@ _ALLOWED_EXTENSIONS = {".wav", ".flac"}
 
 
 class ChatterboxAdapter(ModelAdapter):
+    """Adapter for Chatterbox TTS models.
+
+    Chatterbox supports voice cloning from reference audio files located
+    in a configured directory. Voice can be "default" for built-in voice
+    or a filename for reference-based cloning.
+    """
+
     def __init__(self, spec: ModelSpec, *, voice_clone_dir: str | None) -> None:
+        """Initialize Chatterbox adapter.
+
+        Args:
+            spec: Model specification from registry.
+            voice_clone_dir: Directory containing reference audio files.
+        """
         super().__init__(spec)
         self._voice_clone_dir = voice_clone_dir
 
     @property
     def requires_voice(self) -> bool:
+        """Chatterbox models do not require a voice parameter."""
         return False
 
     def resolve_voice(self, requested_voice: str | None) -> str | None:
+        """Resolve voice identifier for Chatterbox model.
+
+        Args:
+            requested_voice: Voice ID, "default", or filename.
+
+        Returns:
+            Resolved voice identifier:
+            - None for "default" or None (use built-in voice)
+            - Path to reference audio file for voice cloning
+
+        Raises:
+            RuntimeError: If voice resolution fails.
+        """
         if requested_voice is None:
             return None
         value = requested_voice.strip()
@@ -28,6 +61,20 @@ class ChatterboxAdapter(ModelAdapter):
         return self._resolve_ref_audio(value)
 
     def _resolve_ref_audio(self, voice: str) -> str:
+        """Resolve voice to reference audio file path.
+
+        Validates that voice is a filename (not path) and finds
+        the file in the voice clone directory.
+
+        Args:
+            voice: Filename of reference audio (with or without extension).
+
+        Returns:
+            Absolute path to the reference audio file.
+
+        Raises:
+            RuntimeError: If validation fails or file not found.
+        """
         value = voice.strip()
         if not value:
             raise RuntimeError("voice must be non-empty")
@@ -64,6 +111,20 @@ class ChatterboxAdapter(ModelAdapter):
         *,
         raise_if_missing: bool = True,
     ) -> str | None:
+        """Find voice file in clone directory, case-insensitive.
+
+        Args:
+            voice_clone_dir: Directory to search.
+            filename: Voice filename to find.
+            raise_if_missing: Whether to raise exception if not found.
+
+        Returns:
+            Absolute path to voice file, or None if not found and
+            raise_if_missing is False.
+
+        Raises:
+            RuntimeError: If directory cannot be listed or file not found.
+        """
         candidate = os.path.join(voice_clone_dir, filename)
         if os.path.isfile(candidate):
             return candidate
@@ -88,6 +149,19 @@ class ChatterboxAdapter(ModelAdapter):
         voice: str | None,
         speed: float | None,
     ) -> dict[str, object]:
+        """Build kwargs for Chatterbox model.generate().
+
+        Args:
+            text: Input text to synthesize.
+            voice: Path to reference audio file, or None.
+            speed: Playback speed multiplier.
+
+        Returns:
+            Dictionary of parameters for Chatterbox model.
+
+        Raises:
+            RuntimeError: If model doesn't support required parameters.
+        """
         kwargs: dict[str, object] = {"text": text}
         if speed is not None and self._supports_generate_param("speed"):
             kwargs["speed"] = float(speed)
