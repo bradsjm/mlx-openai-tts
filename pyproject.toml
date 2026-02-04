@@ -5,6 +5,16 @@ description = "OpenAI-compatible MLX TTS server"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.128.0",
+  "uvicorn[standard]>=0.40.0",
+  "pydantic>=2.0.0",
+  "numpy>=2.2.6",
+  "soundfile>=0.13.1",
+  "mlx-audio>=0.2.10",
+  "httpx>=0.28.1",
+  "pip>=26.0",
+]
 keywords = ["tts", "openai", "mlx", "fastapi", "speech"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -17,21 +27,10 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3 :: Only",
 ]
-urls = {
-  Homepage = "https://github.com/bradsjm/mlx-openai-tts",
-  Repository = "https://github.com/bradsjm/mlx-openai-tts",
-  "Bug Tracker" = "https://github.com/bradsjm/mlx-openai-tts/issues",
-}
-dependencies = [
-  "fastapi>=0.128.0",
-  "uvicorn[standard]>=0.40.0",
-  "pydantic>=2.0.0",
-  "numpy>=2.2.6",
-  "soundfile>=0.13.1",
-  "mlx-audio>=0.2.10",
-  "httpx>=0.28.1",
-  "pip>=26.0",
-]
+[project.urls]
+Homepage = "https://github.com/bradsjm/mlx-openai-tts"
+Repository = "https://github.com/bradsjm/mlx-openai-tts"
+Issues = "https://github.com/bradsjm/mlx-openai-tts/issues"
 
 [project.optional-dependencies]
 dev = ["pyright==1.1.408", "ruff==0.14.14"]
