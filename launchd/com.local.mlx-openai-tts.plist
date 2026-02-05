@@ -43,6 +43,8 @@
       <string>4096</string>
       <key>TTS_WARMUP_TEXT</key>
       <string>Hello from MLX TTS.</string>
+      <key>TTS_VOICE_CLONE_DIR</key>
+      <string>/Users/user/mlx-openai-tts/voices</string>
 
       <!-- Silence benign upstream warnings -->
       <key>PYTHONWARNINGS</key>
